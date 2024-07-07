@@ -1,34 +1,71 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
+import io from 'socket.io-client'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [score, setScores]= useState({})
+  const [scores,setAllScores] = useState([])
+  const socket=io('localhost:3000')// obtaining server address 
+
+  function connectSocket(){
+    socket.on("connection",(socket)=>{
+      console.log(socket)// connecting to server
+    })
+  }
+
+  function handleInput(event){
+    let {name , value } = event.target
+    let currentObj = ({[name]:value})// creating object to be sent to server
+
+    setScores((prev)=>({...prev,...currentObj}))
+  }
+
+  function sendScores(){
+    socket.emit('scores',score)// sending score object to server using key score
+
+    socket.on("playerScores",(playerScores)=>{// obtaining object of score with id updated from server
+      setAllScores(playerScores)
+    })
+  }
+  useEffect(()=>{
+    connectSocket()
+  },[])
+
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+     <h1>React Multiplayer Dashboard</h1>
+     <input
+      name ='name'
+      placeholder='Enter your name'
+      handleInput={handleInput}
+      />
+
+     <input
+      name = 'score'
+      placeholder='Enter your score'
+      handleInput={handleInput}
+      />
+
+      <button className="send-scores"onClick={sendScores}>Publish Score</button>
+     
+     {scores.length>0? <table> // if scores contain elements then only form table otherwise empty
+        <tbody>
+      <tr>
+        <th>Name</th>
+        <th>Score</th>
+      </tr>
+
+      {scores.map((score)=>(
+        <tr>
+          <td>{score?.name}</td>
+          <td>{score?.score}</td>
+        </tr>
+      ))}
+      </tbody>
+    </table> :<></>}
+
+        </>
   )
 }
 
